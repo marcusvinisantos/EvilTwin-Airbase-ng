@@ -1,0 +1,104 @@
+EVIL TWIN With Airbase-ng
+
+Comando 1 (em uma aba):
+airbase-ng -c 6 --essid VIRUS wlan0
+
+Componentes:
+airbase-ng:
+
+Parte da suíte Aircrack-ng, é usado para criar pontos de acesso falsos (Rogue APs) que imitam redes legítimas.
+Isso pode ser usado para capturar informações de clientes conectados, como senhas ou dados de autenticação.
+-c 6:
+
+Define o canal de operação do ponto de acesso falso.
+No exemplo, o ponto de acesso será criado no canal 6, que é um canal comum em redes Wi-Fi de 2.4 GHz.
+--essid VIRUS:
+
+Define o nome da rede Wi-Fi falsa, ou seja, o SSID (Service Set Identifier) que será exibido para os dispositivos próximos.
+Neste caso, o SSID da rede será "VIRUS".
+
+Comando 2:
+ifconfig at0 192.168.0.5 up
+
+Componentes:
+ifconfig:
+
+Comando usado para visualizar ou configurar interfaces de rede.
+Embora ainda esteja presente em muitos sistemas, foi substituído pelo comando ip em distribuições Linux mais recentes.
+at0:
+
+Nome da interface de rede que será configurada.
+No contexto do comando anterior com airbase-ng, at0 é a interface virtual criada pelo programa. Essa interface representa o ponto de acesso falso gerado pelo airbase-ng.
+192.168.0.5:
+
+Endereço IP que será atribuído à interface at0.
+Este é um IP estático na rede local (sub-rede 192.168.0.x). Ele pode ser usado para que dispositivos conectados ao ponto de acesso falso se comuniquem com a interface.
+up:
+
+Habilita a interface at0, tornando-a funcional.
+Sem este argumento, a interface permaneceria desativada e incapaz de processar pacotes de rede.
+
+Comando 3 (em outra aba):
+dnsmasq -F 192.168.0.20,192.168.0.100,13h -d -i at0
+
+Componentes:
+dnsmasq:
+
+Ferramenta leve que atua como servidor DHCP e DNS. É muito usada em configurações de redes pequenas ou ataques simulados.
+-F 192.168.0.20,192.168.0.100,13h:
+
+Configura o intervalo de endereços IP que serão atribuídos dinamicamente aos dispositivos conectados via DHCP.
+192.168.0.20: Endereço inicial no intervalo.
+192.168.0.100: Endereço final no intervalo.
+13h: Tempo de concessão (lease) dos endereços IP, que neste caso é 13 horas. Isso significa que o dispositivo terá o mesmo IP durante esse período, a menos que a concessão seja renovada.
+-d:
+
+Executa o dnsmasq em modo de depuração (foreground) em vez de rodá-lo como um daemon em segundo plano.
+Útil para monitorar o comportamento em tempo real ou depurar problemas.
+-i at0:
+
+Especifica a interface de rede na qual o dnsmasq irá operar.
+No exemplo, ele está configurado para funcionar na interface virtual at0 criada pelo airbase-ng.
+
+Comando 4 (em outra aba):
+Encaminhamento de pacotes IPv4 (IP forwarding)
+
+O IP forwarding permite que o kernel do Linux redirecione pacotes de uma interface de rede para outra. Isso é essencial para transformar o sistema em um roteador ou realizar NAT (Network Address Translation).
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+
+Detalhamento do Comando:
+
+echo 1: O comando echo envia o valor 1 para um local especificado. Nesse caso, o valor 1 significa "habilitar" uma configuração.
+
+>: Redireciona o valor 1 para o arquivo /proc/sys/net/ipv4/ip_forward.
+
+/proc/sys/net/ipv4/ip_forward: É um arquivo do sistema localizado no pseudo-sistema de arquivos /proc.
+
+Este arquivo controla o comportamento do kernel em relação ao encaminhamento de pacotes IPv4.
+1: Habilita o encaminhamento de pacotes IPv4.
+0: Desabilita o encaminhamento de pacotes IPv4 (valor padrão em muitas distribuições).
+
+Comando 6: 
+iptables -t nat -A POSTROUTING -s 192.168.0.0/24 -j MASQUERADE
+
+Detalhamento:
+
+iptables:
+Ferramenta para configurar regras de firewall e manipular tráfego de rede em sistemas Linux.
+
+-t nat:
+ Especifica a tabela de NAT (Network Address Translation).
+A tabela NAT é usada para manipular pacotes relacionados a traduções de endereços IP, como SNAT (Source NAT) e DNAT (Destination NAT).
+
+-A POSTROUTING:
+POSTROUTING refere-se à cadeia de regras aplicada depois que os pacotes saem de uma interface.
+Aqui, a regra será aplicada a pacotes que estão saindo do sistema após o roteamento.
+
+-s 192.168.0.0/24:
+Define a origem dos pacotes como a sub-rede 192.168.0.0/24.
+Isso significa que a regra será aplicada a pacotes com origem em qualquer dispositivo na rede local com endereços IP entre 192.168.0.1 e 192.168.0.254.
+
+-j MASQUERADE:
+MASQUERADE é uma forma de SNAT (Source NAT), usada para mascarar o endereço IP de origem dos pacotes com o endereço IP da interface de saída.
+Isso é útil em situações onde o endereço IP público da interface de saída pode mudar dinamicamente (por exemplo, em conexões com IP dinâmico).
